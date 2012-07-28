@@ -3,6 +3,7 @@ module dnotify;
 private {
     import std.string : toStringz;
     import std.conv : to;
+    import std.traits : isPointer, isArray;
     
     import deimos.notify.notify;
 }
@@ -23,6 +24,14 @@ class NotificationError : Exception {
 }
 
 
+struct Action {
+    const(char[]) id;
+    const(char[]) label;
+    NotifyActionCallback callback;
+    void* user_ptr;
+}
+
+
 class Notification {
     NotifyNotification* notify_notification;
     
@@ -36,6 +45,7 @@ class Notification {
     const(char)[] _category;
     NotifyUrgency _urgency;
     const(char)[] _app_name;
+    Action[] _actions;
 
     this(in char[] summary, in char[] body_, in char[] icon="") {
         this.summary = summary;
@@ -87,7 +97,33 @@ class Notification {
         notify_notification_set_app_name(notify_notification, app_name.toStringz());
     }
 
-    // add_action
+    void add_action(T)(in char[] action, in char[] label, NotifyActionCallback callback, T user_data) {
+        static if(isPointer!T) {
+            void* user_ptr = cast(void*)user_data;
+        } else static if(isArray!T) {
+            void* user_ptr = cast(void*)user_data.ptr;
+        } else {
+            void* user_ptr = cast(void*)&user_data;
+        }
+
+        notify_notification_add_action(notify_notification, action.toStringz(), label.toStringz(),
+                                       callback, user_ptr, null);
+
+        _actions ~= Action(action, label, callback, user_ptr);
+    }
+
+    void add_action()(Action action) {
+        notify_notification_add_action(notify_notification, action.id.toStringz(), action.label.toStringz(),
+                                       action.callback, action.user_ptr, null);
+
+        _actions ~= action;
+    }
+
+    @property Action[] actions() { return _actions; }
+    
+    void clear_actions() {
+        notify_notification_clear_actions(notify_notification);
+    }
 
     void close() {
         GError* ge;
@@ -112,6 +148,7 @@ version(TestMain) {
         writeln(notify_notification_get_type());
         
         auto n = new Notification("foo", "bar");
+        n.timeout = 3;
         n.show();
 
         notify_uninit();
