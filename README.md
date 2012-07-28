@@ -14,8 +14,8 @@ for loading images from the filesystem with `Notification.set_image`,
 but it also removes the `libgdk_pixbuf` dependency.
 
 ### Usage ###
-Before using anything of **dnotify** you have to call `init(string name)`, which
-initializes libnotify. At the end of the application you should call `uninit()`.
+**dnotify** takes care of calling the `libnotify` initializer and finalizer. The application name
+is by default `"dnotify.d"`, to change this, call `set_app_name(in char[] name)`.
 
 To create a notification bubble you have to instantiate the `Notification` class.
 The `Notification` class is an abstraction of [NotifyNotification](http://developer.gnome.org/libnotify/0.7/NotifyNotification.html).
@@ -38,6 +38,9 @@ n.show()
 
 Beside the NotifyNotification abstraction **dnotify** also provides an abstraction for the
 [Notification API](http://developer.gnome.org/libnotify/0.7/libnotify-notify.html). It also
-takes care of freeing the allocated object from `libnotify`.
+takes care of freeing the allocated objects from `libnotify`.
 
 [More on how to use libnotify](https://wiki.ubuntu.com/NotificationDevelopmentGuidelines).
+
+## Warning ##
+`Notification.set_image` currently results in a segmentation fault.

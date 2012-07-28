@@ -61,6 +61,14 @@ void init(in char[] name) {
 alias notify_is_initted is_initted;
 alias notify_uninit uninit;
 
+static this() {
+    init(__FILE__);
+}
+
+static ~this() {
+    uninit();
+}
+
 string get_app_name() {
     return to!(string)(notify_get_app_name());
 }
@@ -284,15 +292,14 @@ version(TestMain) {
     import std.stdio;
     
     void main() {
-        init("bla");
-
+        writeln(get_app_name());
+        set_app_name("bla");
+        writeln(get_app_name());
         writeln(get_server_caps());
         writeln(get_server_info());
         
         auto n = new Notification("foo", "bar", "notification-message-im");
         n.timeout = 3;
         n.show();
-
-        uninit();
     }
 }
