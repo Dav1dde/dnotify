@@ -10,9 +10,12 @@ private {
     import deimos.notify.notify;
 }
 
-pragma(lib, "notify");
-pragma(lib, "gmodule");
-pragma(lib, "glib-2.0");
+version(NoPragma) {
+} else {
+    pragma(lib, "notify");
+    pragma(lib, "gmodule");
+    pragma(lib, "glib-2.0");
+}
 
 extern (C) {
     private void g_free(void* mem);
@@ -21,7 +24,10 @@ extern (C) {
 
 version(NoGdk) {
 } else {
-    pragma(lib, "gdk_pixbuf");
+    version(NoPragma) {
+    } else {
+        pragma(lib, "gdk_pixbuf");
+    }
 
     private:
     extern (C) {
