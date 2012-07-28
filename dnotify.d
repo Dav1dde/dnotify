@@ -12,6 +12,16 @@ private {
 pragma(lib, "notify");
 pragma(lib, "gmodule");
 
+version(NoGdk) {
+} else {
+    pragma(lib, "gdk_pixbuf");
+
+    private:
+    extern (C) {
+        GdkPixbuf* gdk_pixbuf_new_from_file(const(char)* filename, GError **error);
+    }
+}
+
 class NotificationError : Exception {
     string message;
     GError* gerror;
@@ -21,6 +31,12 @@ class NotificationError : Exception {
         this.gerror = gerror;
         
         super(this.message);
+    }
+
+    this(string message) {
+        this.message = message;
+
+        super(message);
     }
 }
 
@@ -45,6 +61,7 @@ class Notification {
     private int _timeout = NOTIFY_EXPIRES_DEFAULT;
     const(char)[] _category;
     NotifyUrgency _urgency;
+    GdkPixbuf* _image;
     Variant[const(char)[]] _hints;
     const(char)[] _app_name;
     Action[] _actions;
@@ -89,8 +106,33 @@ class Notification {
         notify_notification_set_urgency(notify_notification, urgency);
     }
 
-    // set_image
-    // set_icon
+
+    void set_image(GdkPixbuf* pixbuf) {
+        notify_notification_set_image_from_pixbuf(notify_notification, pixbuf);
+        //_image = pixbuf;
+    }
+    
+    version(NoGdk) {
+    } else {
+        void set_image(in char[] filename) { 
+            GError* ge;
+            // TODO: free pixbuf
+            GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(filename.toStringz(), &ge);
+
+            if(pixbuf is null) {
+                if(ge is null) {
+                    throw new NotificationError("Unable to load file: " ~ filename.idup);
+                } else {
+                    throw new NotificationError(ge);
+                }
+            }
+
+            notify_notification_set_image_from_pixbuf(notify_notification, pixbuf); // TODO: fix segfault
+            //_image = pixbuf;
+        }
+    }
+
+    @property GdkPixbuf* image() { return _image; }
     
     // using deprecated set_hint_* functions (GVariant is an opaque structure, which needs the glib)
     void set_hint(T)(in char[] key, T value) {
