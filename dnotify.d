@@ -41,6 +41,21 @@ class NotificationError : Exception {
 }
 
 
+void init(in char[] name) {
+    notify_init(name.toStringz());
+}
+
+alias notify_is_initted is_initted;
+alias notify_uninit uninit;
+
+const(char)[] get_app_name() {
+    return to!(const(char)[])(notify_get_app_name());
+}
+
+void set_app_name(in char[] app_name) {
+    notify_set_app_name(app_name.toStringz());
+}
+
 struct Action {
     const(char[]) id;
     const(char[]) label;
@@ -66,12 +81,14 @@ class Notification {
     const(char)[] _app_name;
     Action[] _actions;
 
-    this(in char[] summary, in char[] body_, in char[] icon="") {
-        this.summary = summary;
-        this.body_ = body_;
-        this.icon = icon;
-        notify_notification = notify_notification_new(summary.toStringz(), body_.toStringz(), icon.toStringz());
-    }
+    this(in char[] summary, in char[] body_, in char[] icon="")
+        in { assert(is_initted(), "call dnotify.init() before using Notification"); }
+        body {
+            this.summary = summary;
+            this.body_ = body_;
+            this.icon = icon;
+            notify_notification = notify_notification_new(summary.toStringz(), body_.toStringz(), icon.toStringz());
+        }
 
     bool update(in char[] summary, in char[] body_, in char[] icon="") {
         this.summary = summary;
@@ -126,7 +143,7 @@ class Notification {
                     throw new NotificationError(ge);
                 }
             }
-
+            assert(notify_notification !is null);
             notify_notification_set_image_from_pixbuf(notify_notification, pixbuf); // TODO: fix segfault
             //_image = pixbuf;
         }
@@ -213,14 +230,12 @@ version(TestMain) {
     import std.stdio;
     
     void main() {
-        notify_init("bla".toStringz());
-
-        writeln(notify_notification_get_type());
+        init("bla");
         
-        auto n = new Notification("foo", "bar");
+        auto n = new Notification("foo", "bar", "notification-message-im");
         n.timeout = 3;
         n.show();
 
-        notify_uninit();
+        uninit();
     }
 }
