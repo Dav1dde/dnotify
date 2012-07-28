@@ -5,12 +5,19 @@ private {
     import std.conv : to;
     import std.traits : isPointer, isArray;
     import std.variant : Variant;
+    import std.array : appender;
     
     import deimos.notify.notify;
 }
 
 pragma(lib, "notify");
 pragma(lib, "gmodule");
+pragma(lib, "glib-2.0");
+
+extern (C) {
+    private void g_free(void* mem);
+    private void g_list_free(GList* glist);
+}
 
 version(NoGdk) {
 } else {
@@ -48,13 +55,54 @@ void init(in char[] name) {
 alias notify_is_initted is_initted;
 alias notify_uninit uninit;
 
-const(char)[] get_app_name() {
-    return to!(const(char)[])(notify_get_app_name());
+string get_app_name() {
+    return to!(string)(notify_get_app_name());
 }
 
 void set_app_name(in char[] app_name) {
     notify_set_app_name(app_name.toStringz());
 }
+
+string[] get_server_caps() {
+    auto result = appender!(string[])();
+    
+    GList* list = notify_get_server_caps();
+    if(list !is null) {
+        for(GList* c = list; c !is null; c = c.next) {
+            result.put(to!(string)(cast(char*)c.data));
+            g_free(c.data);
+        }
+
+        g_list_free(list);
+    }
+
+    return result.data;
+}
+
+struct ServerInfo {
+    string name;
+    string vendor;
+    string version_;
+    string spec_version;
+}
+
+ServerInfo get_server_info() {
+    char* name;
+    char* vendor;
+    char* version_;
+    char* spec_version;
+    notify_get_server_info(&name, &vendor, &version_, &spec_version);
+
+    scope(exit) {
+        g_free(name);
+        g_free(vendor);
+        g_free(version_);
+        g_free(spec_version);
+    }
+
+    return ServerInfo(to!string(name), to!string(vendor), to!string(version_), to!string(spec_version));
+}
+
 
 struct Action {
     const(char[]) id;
@@ -231,6 +279,9 @@ version(TestMain) {
     
     void main() {
         init("bla");
+
+        writeln(get_server_caps());
+        writeln(get_server_info());
         
         auto n = new Notification("foo", "bar", "notification-message-im");
         n.timeout = 3;
