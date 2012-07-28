@@ -10,6 +10,10 @@ private {
     import deimos.notify.notify;
 }
 
+public import deimos.notify.notify : NOTIFY_EXPIRES_DEFAULT, NOTIFY_EXPIRES_NEVER,
+                                     NotifyUrgency;
+
+
 version(NoPragma) {
 } else {
     pragma(lib, "notify");
