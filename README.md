@@ -36,6 +36,9 @@ auto n = new Notification("headline/summary", "body", "icon");
 n.show()
 ```
 
+Possible errors in `.show`, `.close` and `.set_image` are translated into D exceptions and will
+throw a `NotificationError` exception.
+
 Beside the NotifyNotification abstraction **dnotify** also provides an abstraction for the
 [Notification API](http://developer.gnome.org/libnotify/0.7/libnotify-notify.html). It also
 takes care of freeing the allocated objects from `libnotify`.
