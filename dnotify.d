@@ -4,6 +4,7 @@ private {
     import std.string : toStringz;
     import std.conv : to;
     import std.traits : isPointer, isArray;
+    import std.variant : Variant;
     
     import deimos.notify.notify;
 }
@@ -44,6 +45,7 @@ class Notification {
     private int _timeout = NOTIFY_EXPIRES_DEFAULT;
     const(char)[] _category;
     NotifyUrgency _urgency;
+    Variant[const(char)[]] _hints;
     const(char)[] _app_name;
     Action[] _actions;
 
@@ -89,7 +91,33 @@ class Notification {
 
     // set_image
     // set_icon
-    // set_hint
+    
+    // using deprecated set_hint_* functions (GVariant is an opaque structure, which needs the glib)
+    void set_hint(T)(in char[] key, T value) {
+        static if(is(T == int)) {
+            notify_notification_set_hint_int32(notify_notification, key, value);
+        } else static if(is(T == uint)) {
+            notify_notification_set_hint_uint32(notify_notification, key, value);
+        } else static if(is(T == double)) {
+            notify_notification_set_hint_double(notify_notification, key, value);
+        } else static if(is(T : const(char)[])) {
+            notify_notification_set_hint_string(notify_notification, key, value.toStringz());
+        } else static if(is(T == ubyte)) {
+            notify_notification_set_hint_byte(notify_notification, key, value);
+        } else static if(is(T == ubyte[])) {
+            notify_notification_set_hint_byte_array(notify_notification, key, value.ptr, value.length);
+        } else {
+            static assert(false, "unsupported value for Notification.set_hint");
+        }
+
+        _hints[key] = Variant(value);
+    }
+
+    // unset hint?
+
+    Variant get_hint(in char[] key) {
+        return _hints[key];
+    }
 
     @property const(char)[] app_name() { return _app_name; }
     @property void app_name(in char[] name) {
